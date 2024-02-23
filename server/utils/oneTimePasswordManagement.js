@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const moment = require('moment');
 const pool = require('../database/connection');
+require('dotenv').config();
 function generateOTP() {
     return crypto.randomInt(100000, 999999).toString();
 }
