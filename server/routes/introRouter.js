@@ -2,8 +2,9 @@ var express = require('express');
 var router = express.Router();
 const bcrypt = require('bcrypt');
 const passport = require('passport');
-const initialisePassport = require('./passportConfig');
+const initialisePassport = require('../utils/passportConfig');
 const pool = require('../database/connection');
+var OTP= require('../utils/oneTimePasswordManagement');
 
 //initialising passport, 2nd param is a function to get user by email
 initialisePassport(passport, async (email) => {
@@ -69,7 +70,6 @@ router.get('/forgotpassword', checkNotAuthenticated, (req, res) => {
 router.post('/signup', checkNotAuthenticated, async (req, res) => {
     let conn;
     try {
-        console.log("signup") //DEVVV
         const hashedpassword = await bcrypt.hash(req.body.password, 10);
         conn = await pool.getConnection();
         const query = "INSERT INTO USERS (type,email,password) VALUES (?,?,?)";
@@ -92,13 +92,32 @@ router.post('/signup', checkNotAuthenticated, async (req, res) => {
             conn.release()
     }
 });
-router.post('/signin', function (req, res, next) {
-    passport.authenticate('local', function (err, user, info) {
+router.post('/signin',async function (req, res, next) {
+    passport.authenticate('local',async function (err, user, info) {
         if (err) {
             return next(err);
         }
         if (!user) {
             return res.redirect('/signup&in');
+        }
+
+        let conn;
+        try {
+            conn=await pool.getConnection();
+            const result=await conn.query("SELECT email_verified FROM USERS WHERE email=?",[req.body.email]);
+            if(result[0].email_verified==false)
+            {
+                req.flash('error','Email not verified');
+                return res.redirect('')     //EMPLOY REDIRECT TO EMAIL VERIFICATION
+            }
+        } catch (err) {
+            req.flash('error','Signin failed');
+            res.redirect('/signup&in');
+        }
+        finally
+        {
+            if(conn)
+                conn.release();
         }
         req.logIn(user, function (err) {
             if (err) {
@@ -122,7 +141,6 @@ router.delete('/signout', (req, res) => {
         res.status(403).send('User is not authenticated');
     }
 })
-
 
 
 module.exports = {
