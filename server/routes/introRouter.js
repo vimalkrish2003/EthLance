@@ -51,6 +51,7 @@ function checkNotAuthenticated(req, res, next)    //Authentication check for rou
         next();
     }
 }
+
 // GET FUNCTIONS
 
 router.get('/', checkNotAuthenticated, (req, res) => {
@@ -70,6 +71,7 @@ router.get('/forgotpassword', checkNotAuthenticated, (req, res) => {
 router.post('/signup', checkNotAuthenticated, async (req, res) => {
     let conn;
     try {
+      
         const hashedpassword = await bcrypt.hash(req.body.password, 10);
         conn = await pool.getConnection();
         const query = "INSERT INTO USERS (type,email,password) VALUES (?,?,?)";
